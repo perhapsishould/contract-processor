@@ -47,15 +47,19 @@ export class ConfluenceService {
   /**
    * Create a Confluence page from contract data
    * @param contractData Extracted contract information
+   * @param targetUrl User-specified Confluence URL (optional)
    * @returns URL of the created Confluence page
    */
-  async createContractPage(contractData: ContractData): Promise<string> {
+  async createContractPage(contractData: ContractData, targetUrl?: string): Promise<string> {
     try {
       logger.info(`Creating Confluence page for contract: ${contractData.contractTitle}`);
+      if (targetUrl) {
+        logger.info(`Target URL specified: ${targetUrl}`);
+      }
 
-      // Demo mode - return mock URL
+      // Demo mode - return user-specified URL or mock URL
       if (this.demoMode) {
-        const demoUrl = `https://demo.confluence.com/wiki/spaces/DEMO/pages/123456/${encodeURIComponent(contractData.contractTitle)}`;
+        const demoUrl = targetUrl || `https://demo.confluence.com/wiki/spaces/DEMO/pages/123456/${encodeURIComponent(contractData.contractTitle)}`;
         logger.info(`DEMO MODE: Would have created page at: ${demoUrl}`);
         logger.info('Configure Confluence credentials in .env to create real pages');
         return demoUrl;
@@ -115,6 +119,29 @@ export class ConfluenceService {
 
     // Header section
     sections.push('<h1>Contract Summary</h1>');
+
+    // AI Executive Summary (if available)
+    if (contractData.aiSummary) {
+      sections.push('<ac:structured-macro ac:name="info">');
+      sections.push('<ac:parameter ac:name="title">Executive Summary (AI-Generated)</ac:parameter>');
+      sections.push('<ac:rich-text-body>');
+      sections.push(`<p>${this.escape(contractData.aiSummary).replace(/\n/g, '</p><p>')}</p>`);
+      sections.push('</ac:rich-text-body>');
+      sections.push('</ac:structured-macro>');
+      sections.push('<p></p>');
+    }
+
+    // Template Data Section (if available)
+    if (contractData.templateData) {
+      sections.push('<h2>📋 Contract Template View</h2>');
+      sections.push('<ac:structured-macro ac:name="panel">');
+      sections.push('<ac:parameter ac:name="bgColor">#f4f5f7</ac:parameter>');
+      sections.push('<ac:rich-text-body>');
+      sections.push(`<pre>${this.escape(contractData.templateData)}</pre>`);
+      sections.push('</ac:rich-text-body>');
+      sections.push('</ac:structured-macro>');
+      sections.push('<p></p>');
+    }
 
     // Basic information table
     sections.push('<h2>Basic Information</h2>');

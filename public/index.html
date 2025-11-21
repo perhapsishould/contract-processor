@@ -162,6 +162,57 @@
             color: #666;
             font-size: 14px;
         }
+
+        .form-group {
+            margin: 20px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #dc3545;
+            margin-left: 3px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .form-group .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-text {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +225,22 @@
                 <strong>ℹ️ Demo Mode Active</strong><br>
                 This demo extracts text from PDFs and returns mock contract data.
                 Configure API keys in .env for real AI extraction and Confluence integration.
+            </div>
+
+            <div class="form-group">
+                <label for="confluenceUrl">
+                    Confluence Page URL<span class="required">*</span>
+                </label>
+                <input
+                    type="url"
+                    id="confluenceUrl"
+                    placeholder="https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456/PageTitle"
+                    required
+                >
+                <div class="help-text">
+                    Enter the full Confluence page URL where the contract should be published
+                </div>
+                <div class="error-text" id="urlError">Please enter a valid Confluence URL</div>
             </div>
 
             <div class="upload-area" id="uploadArea">
@@ -204,8 +271,42 @@
         const result = document.getElementById('result');
         const loader = document.getElementById('loader');
         const fileInfo = document.getElementById('fileInfo');
+        const confluenceUrl = document.getElementById('confluenceUrl');
+        const urlError = document.getElementById('urlError');
 
         let selectedFile = null;
+
+        // Validate Confluence URL
+        function validateConfluenceUrl() {
+            const url = confluenceUrl.value.trim();
+            const isValid = url && (
+                url.includes('atlassian.net/wiki') ||
+                url.includes('confluence.com') ||
+                url.includes('/wiki/')
+            );
+
+            if (!isValid && url) {
+                confluenceUrl.classList.add('error');
+                urlError.style.display = 'block';
+            } else {
+                confluenceUrl.classList.remove('error');
+                urlError.style.display = 'none';
+            }
+
+            updateUploadButton();
+            return isValid || !url;
+        }
+
+        // Update upload button state
+        function updateUploadButton() {
+            const url = confluenceUrl.value.trim();
+            const hasValidUrl = url && validateConfluenceUrl();
+            uploadBtn.disabled = !(selectedFile && hasValidUrl);
+        }
+
+        // URL input validation
+        confluenceUrl.addEventListener('input', validateConfluenceUrl);
+        confluenceUrl.addEventListener('blur', validateConfluenceUrl);
 
         // Click to select file
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -242,7 +343,7 @@
         function handleFile(file) {
             selectedFile = file;
             fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-            uploadBtn.disabled = false;
+            updateUploadButton();
             status.style.display = 'none';
             result.innerHTML = '';
         }
@@ -250,8 +351,21 @@
         uploadBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
+            // Validate URL one more time
+            const url = confluenceUrl.value.trim();
+            if (!url) {
+                showStatus('error', '❌ Please enter a Confluence URL');
+                return;
+            }
+
+            if (!validateConfluenceUrl()) {
+                showStatus('error', '❌ Please enter a valid Confluence URL');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('contract', selectedFile);
+            formData.append('confluenceUrl', url);
 
             uploadBtn.disabled = true;
             loader.style.display = 'block';

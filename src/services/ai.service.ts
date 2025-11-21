@@ -125,7 +125,41 @@ export class AIService {
         'This is DEMO DATA - no real AI extraction was performed',
         'Configure ANTHROPIC_API_KEY in .env for real extraction',
       ],
+      aiSummary: `EXECUTIVE SUMMARY (Demo Mode)
+
+This service agreement establishes a 12-month engagement between Demo Company LLC (Provider) and Sample Client Corp (Recipient) with a total contract value of $50,000 USD.
+
+Key Points:
+• Contract Duration: January 1, 2025 - January 1, 2026
+• Financial Terms: $50,000 USD total value
+• Auto-renewal provisions with 30-day notice requirement
+• Standard termination clauses for both convenience and breach scenarios
+
+The agreement includes standard provisions for services delivery, payment terms (Net 30), and mutual confidentiality obligations. Governing law is under State of Demo jurisdiction.
+
+Note: This is generated demo data. Configure ANTHROPIC_API_KEY for real AI-powered summaries.`,
+      templateData: this.generateTemplateData(contractText),
     };
+  }
+
+  /**
+   * Generate template-formatted data for demo mode
+   */
+  private generateTemplateData(contractText: string): string {
+    return `DEMO TEMPLATE DATA
+
+This contract has been parsed into the placeholder template format.
+
+CONTRACT SECTIONS:
+1. Parties & Basic Information
+2. Terms & Conditions
+3. Financial Obligations
+4. Renewal & Termination
+
+EXTRACTED TEXT PREVIEW:
+${contractText.substring(0, 500)}...
+
+Note: Configure ANTHROPIC_API_KEY to parse contracts into your custom template format.`;
   }
 
   /**
@@ -165,7 +199,9 @@ Please extract the following information and return ONLY a valid JSON object (no
   "renewalTerms": "Description of renewal terms if present",
   "terminationClauses": ["List of termination conditions"],
   "governingLaw": "Governing law jurisdiction",
-  "specialProvisions": ["Any special provisions or notable clauses"]
+  "specialProvisions": ["Any special provisions or notable clauses"],
+  "aiSummary": "A concise executive summary (2-3 paragraphs) highlighting the key aspects of the contract, including parties, duration, value, major obligations, and critical terms. Write this as if briefing an executive.",
+  "templateData": "Format the contract information for presentation using this structure:\n\n1. OVERVIEW: Brief contract description\n2. PARTIES & DATES: Key stakeholders and timeline\n3. FINANCIAL TERMS: Payment and value details\n4. OBLIGATIONS: What each party must do\n5. RISK FACTORS: Termination, liability, and other risks\n6. SPECIAL NOTES: Any unusual or important clauses\n\nKeep each section concise but comprehensive."
 }
 
 Important:
@@ -173,6 +209,8 @@ Important:
 - Use null for optional fields if information is not found
 - Dates must be in YYYY-MM-DD format
 - Be thorough and extract all relevant information
+- The aiSummary should be a professional executive summary
+- The templateData should be formatted as described above
 - If a field cannot be determined from the contract, use null or an empty array as appropriate`;
   }
 }

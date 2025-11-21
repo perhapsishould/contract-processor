@@ -408,10 +408,24 @@ Edit `src/services/confluence.service.ts`, specifically the `buildPageContent()`
 
 ### Replacing the Contract Template
 
-The system uses a placeholder contract template in `src/templates/contract-template.html`. To use your organization's template:
-1. Replace the content in `contract-template.html` with your template
-2. Update the AI prompt in `src/services/ai.service.ts` to match your template structure
-3. The AI will parse contracts according to your custom template format
+The system uses a placeholder contract template in `src/templates/contract-template.html`.
+
+**Important:** The template file currently exists as a placeholder reference only. The actual template instructions are embedded in the AI prompt in `src/services/ai.service.ts` (lines 203-204 in the `buildExtractionPrompt()` method).
+
+To use your organization's Confluence template:
+
+1. **Save your template**: Place your organization's template HTML/markdown in `src/templates/contract-template.html` for reference
+2. **Update the AI prompt**: Edit `src/services/ai.service.ts`, specifically the `templateData` section in the `buildExtractionPrompt()` method (around line 203)
+3. **Customize the format**: Replace the template instructions with your specific format requirements. For example:
+   ```
+   "templateData": "Format the contract using this structure:
+   [Your organization's template structure here]
+
+   Include sections for: [list your required sections]"
+   ```
+4. **Test the output**: The AI will parse contracts according to your custom template instructions and return the formatted data in the `templateData` field
+
+**Note:** The template format should match what you want to see in the "Contract Template View" section of the Confluence page.
 
 ### Adjusting the AI Prompt
 

@@ -4,12 +4,17 @@ An intelligent document processing system that extracts structured data from con
 
 ## Features
 
-- PDF text extraction and validation
-- AI-powered contract data extraction using Claude
-- Automatic Confluence page generation
-- RESTful API for contract processing
-- Async job processing with status tracking
-- Comprehensive error handling and logging
+- **PDF text extraction and validation**
+- **AI-powered contract data extraction** using Claude Sonnet 4.5
+- **AI-generated executive summaries** for quick contract overview
+- **Template-based contract parsing** for structured presentation
+- **User-specified Confluence URLs** for flexible publishing
+- **Automatic Confluence page generation** with rich formatting
+- **Demo Mode** for testing without API keys
+- **Web Interface** with drag-and-drop file upload
+- **RESTful API** for contract processing
+- **Async job processing** with status tracking
+- **Comprehensive error handling and logging**
 
 ## Architecture
 
@@ -18,18 +23,22 @@ contract-processor/
 ├── src/
 │   ├── services/
 │   │   ├── pdf.service.ts          # PDF text extraction
-│   │   ├── ai.service.ts           # Claude AI integration
-│   │   ├── confluence.service.ts   # Confluence API client
+│   │   ├── ai.service.ts           # Claude AI integration (with demo mode)
+│   │   ├── confluence.service.ts   # Confluence API client (with demo mode)
 │   │   └── processor.service.ts    # Main processing pipeline
 │   ├── routes/
 │   │   └── contract.routes.ts      # API endpoints
 │   ├── middleware/
 │   │   └── error.middleware.ts     # Error handling
 │   ├── types/
-│   │   └── contract.types.ts       # TypeScript types
+│   │   └── contract.types.ts       # TypeScript types & Zod schemas
 │   ├── utils/
 │   │   └── logger.ts               # Logging configuration
+│   ├── templates/
+│   │   └── contract-template.html  # Placeholder contract template
 │   └── index.ts                     # Server entry point
+├── public/
+│   └── index.html                   # Web interface (demo-mode branch)
 ├── uploads/                         # Temporary file storage
 └── dist/                            # Compiled JavaScript
 ```
@@ -37,8 +46,8 @@ contract-processor/
 ## Prerequisites
 
 - Node.js 18+ and npm
-- Anthropic API key (for Claude)
-- Confluence account with API access
+- Anthropic API key (for Claude) - *Optional: Demo mode works without it*
+- Confluence account with API access - *Optional: Demo mode works without it*
 - Confluence Space and optional parent page ID
 
 ## Installation
@@ -105,7 +114,24 @@ UPLOAD_DIR=./uploads
 npm run dev
 ```
 
-The server will start with hot-reload enabled on port 3000 (or your configured PORT).
+The server will start with hot-reload enabled on port 3001 (or your configured PORT).
+
+### Web Interface
+
+The `demo-mode` branch includes a web interface for easy testing:
+
+1. Start the server: `npm run dev`
+2. Open your browser to `http://localhost:3001`
+3. Enter a Confluence URL (required field)
+4. Drag and drop a PDF contract or click to browse
+5. Click "Upload Contract" to process
+6. View real-time processing status and results
+
+**Demo Mode Features:**
+- Works without API keys configured
+- Returns mock contract data for testing
+- Simulates the full processing pipeline
+- Perfect for UI/UX testing and development
 
 ### Production Build
 
@@ -113,6 +139,11 @@ The server will start with hot-reload enabled on port 3000 (or your configured P
 npm run build
 npm start
 ```
+
+## Branches
+
+- **`main`**: Production-ready code with full API functionality
+- **`demo-mode`**: Includes web interface and demo mode for testing without API keys
 
 ## API Endpoints
 
@@ -124,20 +155,24 @@ Upload and process a contract PDF.
 
 **Request:**
 - Content-Type: `multipart/form-data`
-- Body: Form field `contract` with PDF file
+- Body:
+  - `contract`: PDF file (required)
+  - `confluenceUrl`: Target Confluence URL (required)
 
 **Example using curl:**
 ```bash
-curl -X POST http://localhost:3000/api/contracts/process \
-  -F "contract=@/path/to/contract.pdf"
+curl -X POST http://localhost:3001/api/contracts/process \
+  -F "contract=@/path/to/contract.pdf" \
+  -F "confluenceUrl=https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456/PageTitle"
 ```
 
 **Example using JavaScript/fetch:**
 ```javascript
 const formData = new FormData();
 formData.append('contract', pdfFile);
+formData.append('confluenceUrl', 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456/PageTitle');
 
-const response = await fetch('http://localhost:3000/api/contracts/process', {
+const response = await fetch('http://localhost:3001/api/contracts/process', {
   method: 'POST',
   body: formData
 });
@@ -163,7 +198,7 @@ Get the status of a processing job.
 
 **Example:**
 ```bash
-curl http://localhost:3000/api/contracts/550e8400-e29b-41d4-a716-446655440000/status
+curl http://localhost:3001/api/contracts/550e8400-e29b-41d4-a716-446655440000/status
 ```
 
 **Response (Processing):**
@@ -215,7 +250,7 @@ Get a list of all processing jobs.
 
 **Example:**
 ```bash
-curl http://localhost:3000/api/contracts/jobs
+curl http://localhost:3001/api/contracts/jobs
 ```
 
 **Response:**
@@ -278,13 +313,28 @@ The system extracts the following information from contracts:
   terminationClauses?: string[];
   governingLaw?: string;
   specialProvisions?: string[];
+  aiSummary?: string; // AI-generated executive summary
+  templateData?: string; // Contract parsed into template format
 }
 ```
 
-## Confluence Template
+## Confluence Page Output
 
 The generated Confluence page includes:
 
+### 1. Executive Summary (AI-Generated)
+- Professional 2-3 paragraph summary
+- Highlights key contract aspects, parties, duration, value, and obligations
+- Displayed in an info panel at the top of the page
+- Perfect for quick executive review
+
+### 2. Contract Template View
+- Structured contract presentation in organized sections
+- Includes: Overview, Parties & Dates, Financial Terms, Obligations, Risk Factors, Special Notes
+- Displayed in a formatted panel for easy reading
+- Uses placeholder template (can be replaced with organization-specific template)
+
+### 3. Detailed Contract Data
 - **Basic Information Table**: Contract title, number, dates, value, governing law
 - **Parties Table**: All parties with their roles and addresses
 - **Key Terms**: Bulleted list of important terms
@@ -324,22 +374,26 @@ Logs are written to:
 
 Example test workflow:
 
-1. Start the server:
-```bash
-npm run dev
-```
+**Option 1: Using Web Interface (demo-mode branch)**
+1. Checkout demo-mode branch: `git checkout demo-mode`
+2. Start the server: `npm run dev`
+3. Open browser to `http://localhost:3001`
+4. Enter a Confluence URL
+5. Upload a PDF contract via drag-and-drop or file browser
+6. View results in real-time
 
+**Option 2: Using API**
+1. Start the server: `npm run dev`
 2. Upload a test contract:
 ```bash
-curl -X POST http://localhost:3000/api/contracts/process \
-  -F "contract=@./test-contract.pdf"
+curl -X POST http://localhost:3001/api/contracts/process \
+  -F "contract=@./test-contract.pdf" \
+  -F "confluenceUrl=https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456/PageTitle"
 ```
-
 3. Note the returned `jobId` and check status:
 ```bash
-curl http://localhost:3000/api/contracts/{jobId}/status
+curl http://localhost:3001/api/contracts/{jobId}/status
 ```
-
 4. Once completed, visit the Confluence URL to view the generated page.
 
 ## Customization
@@ -352,9 +406,19 @@ Edit `src/types/contract.types.ts` to add or remove fields from `ContractDataSch
 
 Edit `src/services/confluence.service.ts`, specifically the `buildPageContent()` method to change the page layout.
 
+### Replacing the Contract Template
+
+The system uses a placeholder contract template in `src/templates/contract-template.html`. To use your organization's template:
+1. Replace the content in `contract-template.html` with your template
+2. Update the AI prompt in `src/services/ai.service.ts` to match your template structure
+3. The AI will parse contracts according to your custom template format
+
 ### Adjusting the AI Prompt
 
-Edit `src/services/ai.service.ts`, specifically the `buildExtractionPrompt()` method to modify how Claude extracts information.
+Edit `src/services/ai.service.ts`, specifically the `buildExtractionPrompt()` method to modify how Claude extracts information. The prompt includes instructions for:
+- Data extraction schema
+- Executive summary generation
+- Template-based parsing
 
 ## Troubleshooting
 

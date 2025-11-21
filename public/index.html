@@ -293,20 +293,25 @@
                 urlError.style.display = 'none';
             }
 
-            updateUploadButton();
             return isValid || !url;
         }
 
         // Update upload button state
         function updateUploadButton() {
             const url = confluenceUrl.value.trim();
-            const hasValidUrl = url && validateConfluenceUrl();
+            const hasValidUrl = validateConfluenceUrl();
             uploadBtn.disabled = !(selectedFile && hasValidUrl);
         }
 
         // URL input validation
-        confluenceUrl.addEventListener('input', validateConfluenceUrl);
-        confluenceUrl.addEventListener('blur', validateConfluenceUrl);
+        confluenceUrl.addEventListener('input', () => {
+            validateConfluenceUrl();
+            updateUploadButton();
+        });
+        confluenceUrl.addEventListener('blur', () => {
+            validateConfluenceUrl();
+            updateUploadButton();
+        });
 
         // Click to select file
         uploadArea.addEventListener('click', () => fileInput.click());

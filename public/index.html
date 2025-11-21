@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Processor - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .demo-badge {
+            background: #ffd700;
+            color: #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.processing {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .result pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📄 Contract Processor</h1>
+            <span class="demo-badge">DEMO MODE</span>
+
+            <div class="info">
+                <strong>ℹ️ Demo Mode Active</strong><br>
+                This demo extracts text from PDFs and returns mock contract data.
+                Configure API keys in .env for real AI extraction and Confluence integration.
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <p style="font-size: 48px; margin-bottom: 10px;">📎</p>
+                <p style="font-size: 18px; color: #333; margin-bottom: 10px;">
+                    <strong>Drop your PDF contract here</strong>
+                </p>
+                <p style="color: #666;">or click to browse</p>
+                <input type="file" id="fileInput" accept="application/pdf">
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+
+            <button class="btn" id="uploadBtn" disabled>Upload Contract</button>
+
+            <div class="loader" id="loader"></div>
+
+            <div class="status" id="status"></div>
+
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+        const loader = document.getElementById('loader');
+        const fileInfo = document.getElementById('fileInfo');
+
+        let selectedFile = null;
+
+        // Click to select file
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                handleFile(file);
+            } else {
+                showStatus('error', 'Please upload a PDF file');
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            uploadBtn.disabled = false;
+            status.style.display = 'none';
+            result.innerHTML = '';
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('contract', selectedFile);
+
+            uploadBtn.disabled = true;
+            loader.style.display = 'block';
+            showStatus('processing', '⏳ Uploading and processing contract...');
+
+            try {
+                // Upload contract
+                const uploadResponse = await fetch('/api/contracts/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const uploadData = await uploadResponse.json();
+                const jobId = uploadData.jobId;
+
+                showStatus('processing', '⏳ Processing... Checking status...');
+
+                // Poll for completion
+                let attempts = 0;
+                const maxAttempts = 30;
+
+                const checkStatus = async () => {
+                    attempts++;
+
+                    const statusResponse = await fetch(`/api/contracts/${jobId}/status`);
+                    const statusData = await statusResponse.json();
+
+                    if (statusData.status === 'completed') {
+                        loader.style.display = 'none';
+                        showStatus('success', '✅ Contract processed successfully!');
+                        displayResult(statusData);
+                        uploadBtn.disabled = false;
+                    } else if (statusData.status === 'failed') {
+                        loader.style.display = 'none';
+                        showStatus('error', `❌ Processing failed: ${statusData.error}`);
+                        uploadBtn.disabled = false;
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(checkStatus, 1000);
+                    } else {
+                        loader.style.display = 'none';
+                        showStatus('error', '❌ Timeout waiting for processing');
+                        uploadBtn.disabled = false;
+                    }
+                };
+
+                checkStatus();
+
+            } catch (error) {
+                loader.style.display = 'none';
+                showStatus('error', `❌ Error: ${error.message}`);
+                uploadBtn.disabled = false;
+            }
+        });
+
+        function showStatus(type, message) {
+            status.className = `status ${type}`;
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+
+        function displayResult(data) {
+            const html = `
+                <h3>📊 Extracted Contract Data</h3>
+                <p><strong>Job ID:</strong> ${data.id}</p>
+                <p><strong>Filename:</strong> ${data.filename}</p>
+                <p><strong>Status:</strong> ${data.status}</p>
+                ${data.confluencePageUrl ? `<p><strong>Confluence URL:</strong> <a href="${data.confluencePageUrl}" target="_blank">${data.confluencePageUrl}</a></p>` : ''}
+                <h4 style="margin-top: 20px;">Contract Details:</h4>
+                <pre>${JSON.stringify(data.contractData, null, 2)}</pre>
+            `;
+            result.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

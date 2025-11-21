@@ -3,10 +3,11 @@ import logger from '../utils/logger';
 import { ContractData } from '../types/contract.types';
 
 export class ConfluenceService {
-  private client: AxiosInstance;
+  private client: AxiosInstance | null;
   private baseUrl: string;
   private spaceKey: string;
   private parentPageId?: string;
+  private demoMode: boolean;
 
   constructor() {
     this.baseUrl = process.env.CONFLUENCE_BASE_URL || '';
@@ -16,22 +17,31 @@ export class ConfluenceService {
     const email = process.env.CONFLUENCE_USER_EMAIL;
     const apiToken = process.env.CONFLUENCE_API_TOKEN;
 
-    if (!this.baseUrl || !email || !apiToken || !this.spaceKey) {
-      throw new Error('Confluence configuration missing in environment variables');
-    }
+    // Check if running in demo mode
+    this.demoMode = !this.baseUrl ||
+                    !email ||
+                    !apiToken ||
+                    !this.spaceKey ||
+                    this.baseUrl.includes('your-domain') ||
+                    email.includes('your-email');
 
-    // Create authenticated axios instance
-    this.client = axios.create({
-      baseURL: `${this.baseUrl}/wiki/rest/api`,
-      auth: {
-        username: email,
-        password: apiToken,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
+    if (this.demoMode) {
+      logger.warn('Running in DEMO MODE - Confluence pages will not be created');
+      this.client = null;
+    } else {
+      // Create authenticated axios instance
+      this.client = axios.create({
+        baseURL: `${this.baseUrl}/wiki/rest/api`,
+        auth: {
+          username: email,
+          password: apiToken,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+    }
   }
 
   /**
@@ -42,6 +52,14 @@ export class ConfluenceService {
   async createContractPage(contractData: ContractData): Promise<string> {
     try {
       logger.info(`Creating Confluence page for contract: ${contractData.contractTitle}`);
+
+      // Demo mode - return mock URL
+      if (this.demoMode) {
+        const demoUrl = `https://demo.confluence.com/wiki/spaces/DEMO/pages/123456/${encodeURIComponent(contractData.contractTitle)}`;
+        logger.info(`DEMO MODE: Would have created page at: ${demoUrl}`);
+        logger.info('Configure Confluence credentials in .env to create real pages');
+        return demoUrl;
+      }
 
       const pageContent = this.buildPageContent(contractData);
       const pageTitle = this.buildPageTitle(contractData);
@@ -65,7 +83,7 @@ export class ConfluenceService {
         pageData.ancestors = [{ id: this.parentPageId }];
       }
 
-      const response = await this.client.post('/content', pageData);
+      const response = await this.client!.post('/content', pageData);
 
       const pageUrl = `${this.baseUrl}/wiki${response.data._links.webui}`;
       logger.info(`Successfully created Confluence page: ${pageUrl}`);

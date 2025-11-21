@@ -3,14 +3,19 @@ import logger from '../utils/logger';
 import { ContractData, ContractDataSchema } from '../types/contract.types';
 
 export class AIService {
-  private client: Anthropic;
+  private client: Anthropic | null;
+  private demoMode: boolean;
 
   constructor() {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    this.demoMode = !apiKey || apiKey.includes('your_');
+
+    if (this.demoMode) {
+      logger.warn('Running in DEMO MODE - AI extraction will return mock data');
+      this.client = null;
+    } else {
+      this.client = new Anthropic({ apiKey });
     }
-    this.client = new Anthropic({ apiKey });
   }
 
   /**
@@ -22,9 +27,14 @@ export class AIService {
     try {
       logger.info('Starting AI extraction of contract data');
 
+      // Demo mode - return mock data based on text analysis
+      if (this.demoMode) {
+        return this.generateDemoData(contractText);
+      }
+
       const prompt = this.buildExtractionPrompt(contractText);
 
-      const message = await this.client.messages.create({
+      const message = await this.client!.messages.create({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         messages: [
@@ -57,6 +67,65 @@ export class AIService {
       logger.error('Error extracting contract data with AI:', error);
       throw new Error(`Failed to extract contract data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Generate demo data for testing without API key
+   */
+  private generateDemoData(contractText: string): ContractData {
+    logger.info('Generating demo contract data (no AI API key configured)');
+
+    // Extract a sample title from the text
+    const firstLine = contractText.split('\n')[0]?.substring(0, 100) || 'Sample Contract';
+
+    return {
+      contractTitle: firstLine.trim() || 'Demo Service Agreement',
+      contractNumber: 'DEMO-2025-001',
+      effectiveDate: '2025-01-01',
+      expirationDate: '2026-01-01',
+      parties: [
+        {
+          name: 'Demo Company LLC',
+          role: 'provider',
+          address: '123 Demo Street, Demo City, DC 12345',
+        },
+        {
+          name: 'Sample Client Corp',
+          role: 'recipient',
+          address: '456 Sample Avenue, Sample Town, ST 67890',
+        },
+      ],
+      contractValue: {
+        amount: 50000,
+        currency: 'USD',
+      },
+      keyTerms: [
+        'Services to be provided as outlined in Exhibit A',
+        'Payment terms: Net 30 days',
+        'Confidentiality obligations apply to both parties',
+        `Contract text preview: ${contractText.substring(0, 150)}...`,
+      ],
+      obligations: [
+        {
+          party: 'Demo Company LLC',
+          description: 'Provide services as specified in the contract',
+        },
+        {
+          party: 'Sample Client Corp',
+          description: 'Make timely payments and provide necessary access',
+        },
+      ],
+      renewalTerms: 'Auto-renewal for 1 year unless terminated with 30 days notice',
+      terminationClauses: [
+        'Either party may terminate with 30 days written notice',
+        'Immediate termination allowed for material breach',
+      ],
+      governingLaw: 'State of Demo',
+      specialProvisions: [
+        'This is DEMO DATA - no real AI extraction was performed',
+        'Configure ANTHROPIC_API_KEY in .env for real extraction',
+      ],
+    };
   }
 
   /**

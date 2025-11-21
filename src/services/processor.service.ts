@@ -23,9 +23,10 @@ export class ProcessorService {
    * Process a contract PDF file
    * @param filePath Path to the uploaded PDF file
    * @param filename Original filename
+   * @param targetConfluenceUrl User-specified Confluence URL
    * @returns Job ID for tracking
    */
-  async processContract(filePath: string, filename: string): Promise<string> {
+  async processContract(filePath: string, filename: string, targetConfluenceUrl?: string): Promise<string> {
     const jobId = uuidv4();
 
     const job: ProcessingJob = {
@@ -33,6 +34,7 @@ export class ProcessorService {
       filename,
       status: 'pending',
       createdAt: new Date(),
+      targetConfluenceUrl,
     };
 
     this.jobs.set(jobId, job);
@@ -73,7 +75,10 @@ export class ProcessorService {
 
       // Step 4: Create Confluence page
       logger.info(`[${jobId}] Creating Confluence page`);
-      const confluenceUrl = await this.confluenceService.createContractPage(contractData);
+      const confluenceUrl = await this.confluenceService.createContractPage(
+        contractData,
+        job.targetConfluenceUrl
+      );
 
       // Update job as completed
       job.status = 'completed';

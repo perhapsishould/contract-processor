@@ -50,11 +50,18 @@ router.post('/process', upload.single('contract'), async (req: Request, res: Res
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const confluenceUrl = req.body.confluenceUrl;
+    if (!confluenceUrl) {
+      return res.status(400).json({ error: 'Confluence URL is required' });
+    }
+
     logger.info(`Received contract upload: ${req.file.originalname}`);
+    logger.info(`Target Confluence URL: ${confluenceUrl}`);
 
     const jobId = await processorService.processContract(
       req.file.path,
-      req.file.originalname
+      req.file.originalname,
+      confluenceUrl
     );
 
     res.status(202).json({

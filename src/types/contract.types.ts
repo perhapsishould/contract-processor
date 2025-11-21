@@ -24,6 +24,8 @@ export const ContractDataSchema = z.object({
   terminationClauses: z.array(z.string()).optional(),
   governingLaw: z.string().optional(),
   specialProvisions: z.array(z.string()).optional(),
+  aiSummary: z.string().optional(), // AI-generated executive summary
+  templateData: z.string().optional(), // Contract parsed into template format
 });
 
 export type ContractData = z.infer<typeof ContractDataSchema>;
@@ -38,4 +40,5 @@ export interface ProcessingJob {
   error?: string;
   contractData?: ContractData;
   confluencePageUrl?: string;
+  targetConfluenceUrl?: string; // User-specified Confluence URL
 }

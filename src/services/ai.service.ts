@@ -96,7 +96,9 @@ Please extract the following information and return ONLY a valid JSON object (no
   "renewalTerms": "Description of renewal terms if present",
   "terminationClauses": ["List of termination conditions"],
   "governingLaw": "Governing law jurisdiction",
-  "specialProvisions": ["Any special provisions or notable clauses"]
+  "specialProvisions": ["Any special provisions or notable clauses"],
+  "aiSummary": "A concise executive summary (2-3 paragraphs) highlighting the key aspects of the contract, including parties, duration, value, major obligations, and critical terms. Write this as if briefing an executive.",
+  "templateData": "Format the contract information for presentation using this structure:\n\n1. OVERVIEW: Brief contract description\n2. PARTIES & DATES: Key stakeholders and timeline\n3. FINANCIAL TERMS: Payment and value details\n4. OBLIGATIONS: What each party must do\n5. RISK FACTORS: Termination, liability, and other risks\n6. SPECIAL NOTES: Any unusual or important clauses\n\nKeep each section concise but comprehensive."
 }
 
 Important:
@@ -104,6 +106,8 @@ Important:
 - Use null for optional fields if information is not found
 - Dates must be in YYYY-MM-DD format
 - Be thorough and extract all relevant information
+- The aiSummary should be a professional executive summary
+- The templateData should be formatted as described above
 - If a field cannot be determined from the contract, use null or an empty array as appropriate`;
   }
 }
